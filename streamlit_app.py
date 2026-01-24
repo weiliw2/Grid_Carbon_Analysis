@@ -10,7 +10,54 @@ import plotly.express as px
 import plotly.graph_objects as go
 import joblib
 import os
-import sys
+import subprocess
+
+# Auto-setup: Check if data exists, if not run the pipeline
+def setup_data():
+    """Setup data files if they don't exist"""
+    required_files = [
+        'data/processed/country_carbon_intensity.csv',
+        'data/processed/carbon_emulator_model.pkl',
+        'data/processed/ml_features.csv'
+    ]
+    
+    if not all(os.path.exists(f) for f in required_files):
+        st.info("🔄 First-time setup: Generating data files... This takes 2-3 minutes.")
+        
+        # Create directories
+        os.makedirs('data/raw', exist_ok=True)
+        os.makedirs('data/processed', exist_ok=True)
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        try:
+            # Phase 1
+            status_text.text("📥 Phase 1/3: Fetching global power plant data...")
+            progress_bar.progress(10)
+            subprocess.run(['python', 'src/phase1_data_fetch.py'], check=True, capture_output=True)
+            progress_bar.progress(33)
+            
+            # Phase 2
+            status_text.text("⚡ Phase 2/3: Calculating carbon intensity...")
+            subprocess.run(['python', 'src/phase2_carbon_intensity.py'], check=True, capture_output=True)
+            progress_bar.progress(66)
+            
+            # Phase 3
+            status_text.text("🤖 Phase 3/3: Training ML emulator...")
+            subprocess.run(['python', 'src/phase3_ml_emulator.py'], check=True, capture_output=True)
+            progress_bar.progress(100)
+            
+            status_text.text("✅ Setup complete!")
+            st.success("Data pipeline completed successfully! Reloading app...")
+            st.rerun()
+            
+        except subprocess.CalledProcessError as e:
+            st.error(f"❌ Error during setup: {e}")
+            st.stop()
+
+# Run setup check
+setup_data()
 
 # Page configuration
 st.set_page_config(
