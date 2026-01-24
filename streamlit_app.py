@@ -513,7 +513,7 @@ if data_loaded:
                     names='Fuel Type',
                     title=f'{selected_country_dive} Energy Mix',
                     hole=0.5,
-                    color_discrete_sequence=px.colors.sequential.TealGrn_r
+                    color_discrete_sequence=px.colors.sequential.Greens_r
                 )
                 
                 fig.update_layout(paper_bgcolor='rgba(0,0,0,0)')
