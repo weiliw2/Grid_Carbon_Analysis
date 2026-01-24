@@ -21,7 +21,7 @@ This project builds a machine learning emulator that instantly predicts a countr
 
 ---
 
-## 📊 Data & Methodology
+## Methodology
 
 **Data Source:** [Global Power Plant Database](https://github.com/wri/global-power-plant-database) (World Resources Institute)
 - 34,936 power plants worldwide
