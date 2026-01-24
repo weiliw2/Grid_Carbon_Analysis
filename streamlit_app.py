@@ -9,6 +9,13 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import joblib
+import os
+import sys
+
+# Check and setup data files on first run
+if not os.path.exists('data/processed/country_carbon_intensity.csv'):
+    with st.spinner('🔄 Setting up data for first time... This may take 2-3 minutes.'):
+        exec(open('setup_data.py').read())
 
 # Page configuration
 st.set_page_config(
