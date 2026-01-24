@@ -92,138 +92,215 @@ st.set_page_config(
     page_title="Grid Carbon Emulator",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for professional design
+# Custom CSS inspired by UXBoost design
 st.markdown("""
     <style>
-    /* Main layout */
-    .main {
-        padding: 2rem 3rem;
-        background-color: #ffffff;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    /* Global Styles */
+    * {
+        font-family: 'Inter', sans-serif;
     }
     
-    /* Headers */
+    .main {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 0;
+    }
+    
+    .block-container {
+        padding: 3rem 5rem;
+        max-width: 1400px;
+    }
+    
+    /* Hero Section */
+    .hero-section {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        padding: 3rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
     h1 {
-        color: #1e3a8a;
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+    }
+    
+    .subtitle {
+        font-size: 1.25rem;
+        color: #64748b;
+        font-weight: 500;
+        line-height: 1.6;
+    }
+    
+    /* Metrics Cards */
+    [data-testid="stMetric"] {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+    }
+    
+    [data-testid="stMetricValue"] {
+        font-size: 2.5rem;
         font-weight: 700;
-        padding-bottom: 0.5rem;
-        border-bottom: 3px solid #3b82f6;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Content Cards */
+    .content-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         margin-bottom: 2rem;
     }
     
     h2 {
-        color: #1e40af;
-        font-weight: 600;
-        margin-top: 2rem;
-        margin-bottom: 1rem;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
     }
     
     h3 {
-        color: #374151;
+        font-size: 1.25rem;
         font-weight: 600;
+        color: #475569;
         margin-bottom: 1rem;
-    }
-    
-    /* Metrics */
-    [data-testid="stMetricValue"] {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1e3a8a;
-    }
-    
-    [data-testid="stMetricLabel"] {
-        font-size: 0.9rem;
-        color: #6b7280;
-        font-weight: 500;
-    }
-    
-    /* Cards */
-    .stMetric {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
     /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 2rem;
-        border-bottom: 2px solid #e5e7eb;
+        gap: 1rem;
+        background: white;
+        padding: 1rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
     }
     
     .stTabs [data-baseweb="tab"] {
         font-weight: 600;
         font-size: 1rem;
-        padding: 0.75rem 1.5rem;
-        color: #6b7280;
+        padding: 1rem 2rem;
+        color: #64748b;
+        border-radius: 12px;
+        background: transparent;
+        border: none;
     }
     
     .stTabs [aria-selected="true"] {
-        color: #3b82f6;
-        border-bottom: 3px solid #3b82f6;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
     }
     
     /* Buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         font-weight: 600;
-        border-radius: 0.5rem;
+        border-radius: 12px;
         padding: 0.75rem 2rem;
         border: none;
-        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
-        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        transition: all 0.3s ease;
+        font-size: 1rem;
     }
     
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
-    }
-    
-    /* Info boxes */
-    .stAlert {
-        border-radius: 0.5rem;
-        border-left: 4px solid #3b82f6;
-        background-color: #eff6ff;
-        padding: 1rem;
+        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
     }
     
     /* Sliders */
-    .stSlider {
-        padding: 1rem 0;
+    .stSlider > div > div > div {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Info/Alert Boxes */
+    .stAlert {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border: 1px solid rgba(102, 126, 234, 0.3);
+        border-radius: 12px;
+        padding: 1rem;
+        color: #1e293b;
     }
     
     /* Dataframes */
     .dataframe {
-        border-radius: 0.5rem;
+        border-radius: 12px;
         overflow: hidden;
-        border: 1px solid #e5e7eb;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
     
-    /* Sidebar */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-        padding: 2rem 1rem;
+    .dataframe th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        font-weight: 600;
+        padding: 1rem;
+    }
+    
+    .dataframe td {
+        padding: 0.75rem 1rem;
+    }
+    
+    /* Input Fields */
+    .stTextInput > div > div, .stNumberInput > div > div, .stSelectbox > div > div {
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        background: white;
+    }
+    
+    .stTextInput > div > div:focus-within, .stNumberInput > div > div:focus-within, .stSelectbox > div > div:focus-within {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background: white;
+        border-radius: 12px;
+        font-weight: 600;
+        color: #1e293b;
     }
     
     /* Footer */
     footer {
-        color: #6b7280;
-        font-size: 0.875rem;
-        text-align: center;
-        padding: 2rem 0;
-        border-top: 1px solid #e5e7eb;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        padding: 2rem;
         margin-top: 3rem;
+        text-align: center;
+        color: #64748b;
     }
     
-    /* Remove excessive spacing */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
+    /* Remove Streamlit Branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
     </style>
     """, unsafe_allow_html=True)
 
@@ -253,26 +330,26 @@ except Exception as e:
     data_loaded = False
 
 if data_loaded:
-    # Title and description
-    st.title("Grid Carbon-Intensity Emulator")
+    # Hero Section
     st.markdown("""
-    <p style='font-size: 1.1rem; color: #6b7280; margin-bottom: 2rem;'>
-    AI-powered analysis and simulation of electricity grid carbon intensity across 167 countries. 
-    Predict the impact of energy policy changes and optimize data center location strategies.
-    </p>
+    <div class="hero-section">
+        <h1>Grid Carbon Emulator</h1>
+        <p class="subtitle">
+        Harness AI to predict electricity grid carbon intensity across 167 countries. 
+        Simulate energy transitions and optimize infrastructure decisions with real-time insights.
+        </p>
+    </div>
     """, unsafe_allow_html=True)
-    
-    # Sidebar
-    st.sidebar.markdown("### Navigation")
-    st.sidebar.markdown("Use the tabs above to explore different features of the emulator.")
     
     # Tab selection
     tab1, tab2, tab3, tab4 = st.tabs(["Global Overview", "Policy Simulator", "Country Analysis", "Data Center Calculator"])
     
     # TAB 1: Global Overview
     with tab1:
-        st.markdown("## Global Carbon Intensity Map")
-        st.markdown("Explore carbon intensity patterns across countries and identify leaders in clean energy.")
+        st.markdown('<div class="content-card">', unsafe_allow_html=True)
+        st.markdown("## Global Carbon Intensity")
+        st.markdown("Real-time analysis of electricity generation emissions across the world.")
+        st.markdown('</div>', unsafe_allow_html=True)
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -293,7 +370,7 @@ if data_loaded:
             st.metric("Avg Renewable %", f"{avg_renewable:.1f}%")
         
         # World map
-        st.subheader("Carbon Intensity by Country")
+        st.markdown('<div class="content-card">', unsafe_allow_html=True)
         
         fig = px.choropleth(
             country_data,
@@ -307,41 +384,50 @@ if data_loaded:
                 'dominant_fuel': True,
                 'country': False
             },
-            color_continuous_scale='RdYlGn_r',
-            labels={'carbon_intensity_gco2_kwh': 'Carbon Intensity (gCO2/kWh)'},
-            title='Global Grid Carbon Intensity'
+            color_continuous_scale=[[0, '#667eea'], [0.5, '#f093fb'], [1, '#f5576c']],
+            labels={'carbon_intensity_gco2_kwh': 'Carbon Intensity (gCO2/kWh)'}
         )
         
         fig.update_layout(
             height=500,
-            margin=dict(l=0, r=0, t=30, b=0)
+            margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(family="Inter", size=12)
         )
         
         st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Top/Bottom countries
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("Cleanest Grids")
+            st.markdown('<div class="content-card">', unsafe_allow_html=True)
+            st.markdown("### Cleanest Energy Grids")
             cleanest_10 = country_data.nsmallest(10, 'carbon_intensity_gco2_kwh')[
-                ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage', 'dominant_fuel']
+                ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage']
             ]
-            cleanest_10.columns = ['Country', 'gCO2/kWh', 'Renewable %', 'Dominant Fuel']
+            cleanest_10.columns = ['Country', 'Intensity (gCO2/kWh)', 'Renewable %']
             st.dataframe(cleanest_10, hide_index=True, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
         
         with col2:
-            st.subheader("Highest Emitters")
+            st.markdown('<div class="content-card">', unsafe_allow_html=True)
+            st.markdown("### Highest Carbon Intensity")
             dirtiest_10 = country_data.nlargest(10, 'carbon_intensity_gco2_kwh')[
-                ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage', 'dominant_fuel']
+                ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage']
             ]
-            dirtiest_10.columns = ['Country', 'gCO2/kWh', 'Renewable %', 'Dominant Fuel']
+            dirtiest_10.columns = ['Country', 'Intensity (gCO2/kWh)', 'Renewable %']
             st.dataframe(dirtiest_10, hide_index=True, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
     
     # TAB 2: Policy Simulator
     with tab2:
+        st.markdown('<div class="content-card">', unsafe_allow_html=True)
         st.markdown("## Policy Impact Simulator")
-        st.markdown("Model the effects of transitioning from fossil fuels to renewable energy sources.")
+        st.markdown("Model the carbon reduction effects of transitioning from fossil fuels to renewable energy.")
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Country selection
         countries_with_coal = ml_features[ml_features.get('Coal_pct', 0) > 5].index.tolist()
