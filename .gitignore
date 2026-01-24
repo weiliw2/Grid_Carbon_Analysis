@@ -35,3 +35,5 @@ Thumbs.db
 # Keep data folders but not contents
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+!processed_data.tar.gz

@@ -10,7 +10,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import joblib
 import os
-import subprocess
+import sys
+
+# Add src to path so we can import from it
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 # Auto-setup: Check if data exists, if not run the pipeline
 def setup_data():
@@ -32,28 +35,53 @@ def setup_data():
         status_text = st.empty()
         
         try:
-            # Phase 1
+            # Import phase modules
             status_text.text("📥 Phase 1/3: Fetching global power plant data...")
             progress_bar.progress(10)
-            subprocess.run(['python', 'src/phase1_data_fetch.py'], check=True, capture_output=True)
+            
+            import phase1_data_fetch as p1
+            df = p1.fetch_power_plant_data()
+            if df is not None:
+                p1.explore_data(df)
             progress_bar.progress(33)
             
             # Phase 2
             status_text.text("⚡ Phase 2/3: Calculating carbon intensity...")
-            subprocess.run(['python', 'src/phase2_carbon_intensity.py'], check=True, capture_output=True)
+            
+            import phase2_carbon_intensity as p2
+            df = p2.load_power_plant_data()
+            df = p2.map_emission_factors(df)
+            df = p2.calculate_plant_emissions(df)
+            country_data = p2.calculate_country_carbon_intensity(df)
+            
+            df.to_csv('data/processed/plants_with_emissions.csv', index=False)
+            country_data.to_csv('data/processed/country_carbon_intensity.csv', index=False)
             progress_bar.progress(66)
             
             # Phase 3
             status_text.text("🤖 Phase 3/3: Training ML emulator...")
-            subprocess.run(['python', 'src/phase3_ml_emulator.py'], check=True, capture_output=True)
-            progress_bar.progress(100)
             
+            import phase3_ml_emulator as p3
+            plants_df, country_df = p2.load_power_plant_data(), country_data
+            fuel_features = p3.create_fuel_mix_features(plants_df)
+            X, y, ml_data = p3.prepare_ml_dataset(fuel_features, country_df)
+            
+            model_result = p3.train_models(X, y)
+            if model_result[0] is not None:
+                best_model = model_result[0]
+                joblib.dump(best_model, 'data/processed/carbon_emulator_model.pkl')
+                X.to_csv('data/processed/ml_features.csv')
+                y.to_csv('data/processed/ml_targets.csv')
+            
+            progress_bar.progress(100)
             status_text.text("✅ Setup complete!")
             st.success("Data pipeline completed successfully! Reloading app...")
             st.rerun()
             
-        except subprocess.CalledProcessError as e:
-            st.error(f"❌ Error during setup: {e}")
+        except Exception as e:
+            st.error(f"❌ Error during setup: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
             st.stop()
 
 # Run setup check
