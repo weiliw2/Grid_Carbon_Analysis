@@ -3,7 +3,7 @@
 **Author:** Weilin  
 
 An AI-powered system that predicts electricity grid carbon intensity and simulates the impact of energy policy changes across 167 countries.
-
+https://grid-carbon-emulator-kmqkovap6aldgbbqgimcxs.streamlit.app/
 ---
 
 ## Overview
