@@ -1,6 +1,6 @@
 """
 Grid Carbon-Intensity Emulator - Streamlit Dashboard
-Theme: Sage & Stone (Large Text + Base Map Edition)
+Interactive web application to explore carbon intensity predictions
 """
 
 import streamlit as st
@@ -15,10 +15,7 @@ import sys
 # Add src to path so we can import from it
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-# -----------------------------------------------------------------------------
-# 1. SETUP & DATA LOADING
-# -----------------------------------------------------------------------------
-
+# Auto-setup: Check if data exists, if not run the pipeline
 def setup_data():
     """Setup data files if they don't exist"""
     required_files = [
@@ -29,16 +26,27 @@ def setup_data():
     
     if not all(os.path.exists(f) for f in required_files):
         st.info("🔄 First-time setup: Generating data files... This takes 2-3 minutes.")
+        
+        # Create directories
         os.makedirs('data/raw', exist_ok=True)
         os.makedirs('data/processed', exist_ok=True)
         
         progress_bar = st.progress(0)
+        status_text = st.empty()
         
         try:
+            # Import phase modules
+            status_text.text("📥 Phase 1/3: Fetching global power plant data...")
+            progress_bar.progress(10)
+            
             import phase1_data_fetch as p1
             df = p1.fetch_power_plant_data()
-            if df is not None: p1.explore_data(df)
+            if df is not None:
+                p1.explore_data(df)
             progress_bar.progress(33)
+            
+            # Phase 2
+            status_text.text("⚡ Phase 2/3: Calculating carbon intensity...")
             
             import phase2_carbon_intensity as p2
             df = p2.load_power_plant_data()
@@ -50,6 +58,9 @@ def setup_data():
             country_data.to_csv('data/processed/country_carbon_intensity.csv', index=False)
             progress_bar.progress(66)
             
+            # Phase 3
+            status_text.text("🤖 Phase 3/3: Training ML emulator...")
+            
             import phase3_ml_emulator as p3
             plants_df, country_df = p2.load_power_plant_data(), country_data
             fuel_features = p3.create_fuel_mix_features(plants_df)
@@ -57,246 +68,233 @@ def setup_data():
             
             model_result = p3.train_models(X, y)
             if model_result[0] is not None:
-                joblib.dump(model_result[0], 'data/processed/carbon_emulator_model.pkl')
+                best_model = model_result[0]
+                joblib.dump(best_model, 'data/processed/carbon_emulator_model.pkl')
                 X.to_csv('data/processed/ml_features.csv')
                 y.to_csv('data/processed/ml_targets.csv')
             
             progress_bar.progress(100)
+            status_text.text("✅ Setup complete!")
+            st.success("Data pipeline completed successfully! Reloading app...")
             st.rerun()
             
         except Exception as e:
             st.error(f"❌ Error during setup: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
             st.stop()
 
+# Run setup check
 setup_data()
 
+# Page configuration
 st.set_page_config(
     page_title="Grid Carbon Emulator",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# -----------------------------------------------------------------------------
-# 2. DESIGN SYSTEM (CSS) - UPDATED FOR LARGER TEXT
-# -----------------------------------------------------------------------------
-
+# Custom CSS for professional design
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
-    /* --- COLOR VARIABLES --- */
-    :root {
-        --sage-dark: #354F52;
-        --sage-med: #52796F;
-        --sage-light: #84A98C;
-        --text-main: #2F3E46;
-        --text-sub: #5F6F65;
-        --bg-main: #F9F9F9;
-        --card-bg: #FFFFFF;
-        --border-color: #E0E7E4;
+    /* Main layout */
+    .main {
+        padding: 2rem 3rem;
+        background-color: #ffffff;
     }
     
-    /* --- GLOBAL TYPOGRAPHY --- */
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-        color: var(--text-main);
-        background-color: var(--bg-main);
-    }
-    
-    /* Page Title: Increased to ~42px */
+    /* Headers */
     h1 {
-        font-size: 2.75rem !important; 
-        font-weight: 700 !important;
-        color: var(--sage-dark) !important;
-        margin-bottom: 0.75rem !important;
-        padding-top: 0 !important;
-        letter-spacing: -0.02em;
-    }
-    
-    /* Section Headers: Increased to ~26px */
-    h2, h3 {
-        font-size: 1.75rem !important;
-        font-weight: 600 !important;
-        color: var(--text-main) !important;
-        margin-top: 2rem !important;
-        margin-bottom: 1rem !important;
-        letter-spacing: -0.01em;
-    }
-    
-    /* Body Text: Increased to ~18px */
-    p, li, .stMarkdown {
-        font-size: 1.125rem !important; /* 18px */
-        line-height: 1.6 !important;
-        color: var(--text-main) !important;
-    }
-    
-    /* Labels / Captions: Increased to ~15px */
-    .caption, [data-testid="stMetricLabel"] {
-        font-size: 1rem !important; /* 16px */
-        color: var(--text-sub) !important;
-        font-weight: 500 !important;
-    }
-    
-    /* --- LAYOUT & CONTAINERS --- */
-    .block-container {
-        padding: 3rem 4rem;
-        max-width: 1400px; /* Slightly wider to accommodate larger text */
-    }
-    
-    .content-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 2rem;
+        color: #1e3a8a;
+        font-weight: 700;
+        padding-bottom: 0.5rem;
+        border-bottom: 3px solid #3b82f6;
         margin-bottom: 2rem;
     }
     
-    /* Metrics - Larger Impact */
-    [data-testid="stMetric"] {
-        background-color: #FFFFFF;
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        padding: 1.25rem;
+    h2 {
+        color: #1e40af;
+        font-weight: 600;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
     }
     
+    h3 {
+        color: #374151;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    /* Metrics */
     [data-testid="stMetricValue"] {
-        font-size: 2.25rem !important; /* 36px */
-        font-weight: 700 !important;
-        color: var(--sage-dark) !important;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e3a8a;
     }
     
-    /* --- COMPONENT STYLING --- */
+    [data-testid="stMetricLabel"] {
+        font-size: 0.9rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    /* Cards */
+    .stMetric {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
     
     /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 2.5rem;
-        border-bottom: 2px solid var(--border-color);
-        padding-bottom: 0;
+        gap: 2rem;
+        border-bottom: 2px solid #e5e7eb;
     }
     
     .stTabs [data-baseweb="tab"] {
-        font-size: 1.125rem; /* 18px */
         font-weight: 600;
-        color: var(--text-sub);
-        padding: 1rem 0;
+        font-size: 1rem;
+        padding: 0.75rem 1.5rem;
+        color: #6b7280;
     }
     
     .stTabs [aria-selected="true"] {
-        color: var(--sage-med) !important;
-        border-bottom: 3px solid var(--sage-med);
+        color: #3b82f6;
+        border-bottom: 3px solid #3b82f6;
     }
     
     /* Buttons */
     .stButton > button {
-        background-color: var(--sage-med);
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
         color: white;
-        border-radius: 8px;
-        padding: 0.6rem 1.5rem;
         font-weight: 600;
-        font-size: 1.125rem; /* 18px */
+        border-radius: 0.5rem;
+        padding: 0.75rem 2rem;
+        border: none;
+        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        transition: all 0.3s;
     }
     
     .stButton > button:hover {
-        background-color: var(--sage-dark);
-        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
     }
     
-    /* Inputs */
-    .stTextInput > div > div, .stSelectbox > div > div, .stNumberInput > div > div {
-        font-size: 1.125rem;
+    /* Info boxes */
+    .stAlert {
+        border-radius: 0.5rem;
+        border-left: 4px solid #3b82f6;
+        background-color: #eff6ff;
+        padding: 1rem;
     }
     
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    /* Sliders */
+    .stSlider {
+        padding: 1rem 0;
+    }
     
+    /* Dataframes */
+    .dataframe {
+        border-radius: 0.5rem;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 2rem 1rem;
+    }
+    
+    /* Footer */
+    footer {
+        color: #6b7280;
+        font-size: 0.875rem;
+        text-align: center;
+        padding: 2rem 0;
+        border-top: 1px solid #e5e7eb;
+        margin-top: 3rem;
+    }
+    
+    /* Remove excessive spacing */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# -----------------------------------------------------------------------------
-# 3. HELPER FUNCTIONS (THEME UPDATE)
-# -----------------------------------------------------------------------------
-
-def apply_chart_theme(fig):
-    """Applies the minimal Sage/Climate-Tech theme to Plotly figures"""
-    fig.update_layout(
-        font={'family': "Inter", 'color': "#2F3E46", 'size': 14}, # Base font size for charts
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=0, r=0, t=40, b=0),
-        xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="#E0E7E4"),
-        yaxis=dict(showgrid=True, gridcolor="#F0F4F2", zeroline=False),
-        hoverlabel=dict(
-            bgcolor="white",
-            font_size=14,
-            font_family="Inter"
-        )
-    )
-    return fig
-
+# Load data and model
 @st.cache_data
 def load_data():
+    """Load processed data"""
     country_data = pd.read_csv('data/processed/country_carbon_intensity.csv')
     ml_features = pd.read_csv('data/processed/ml_features.csv', index_col=0)
-    return country_data, ml_features
+    ml_targets = pd.read_csv('data/processed/ml_targets.csv', index_col=0)
+    
+    return country_data, ml_features, ml_targets
 
 @st.cache_resource
 def load_model():
+    """Load trained model"""
     return joblib.load('data/processed/carbon_emulator_model.pkl')
 
-# -----------------------------------------------------------------------------
-# 4. MAIN APP LOGIC
-# -----------------------------------------------------------------------------
-
+# Load everything
 try:
-    country_data, ml_features = load_data()
+    country_data, ml_features, ml_targets = load_data()
     model = load_model()
     data_loaded = True
-except Exception:
+except Exception as e:
+    st.error(f"Error loading data: {e}")
+    st.info("Please make sure you've run Phase 2 and Phase 3 first!")
     data_loaded = False
 
 if data_loaded:
-    # --- HERO SECTION ---
-    st.markdown("<h1>Grid Carbon Emulator</h1>", unsafe_allow_html=True)
+    # Title and description
+    st.title("Grid Carbon-Intensity Emulator")
     st.markdown("""
-    <p style="color: #5F6F65; font-size: 1.25rem; margin-bottom: 2.5rem; max-width: 900px;">
-        Explore grid carbon intensity across 167 countries. 
-        Simulate energy transitions and evaluate infrastructure decisions using machine learning.
+    <p style='font-size: 1.1rem; color: #6b7280; margin-bottom: 2rem;'>
+    AI-powered analysis and simulation of electricity grid carbon intensity across 167 countries. 
+    Predict the impact of energy policy changes and optimize data center location strategies.
     </p>
     """, unsafe_allow_html=True)
     
-    tab1, tab2, tab3, tab4 = st.tabs(["Global Overview", "Policy Simulator", "Country Analysis", "Data Center Calc"])
+    # Sidebar
+    st.sidebar.markdown("### Navigation")
+    st.sidebar.markdown("Use the tabs above to explore different features of the emulator.")
     
-    # === TAB 1: GLOBAL OVERVIEW ===
+    # Tab selection
+    tab1, tab2, tab3, tab4 = st.tabs(["Global Overview", "Policy Simulator", "Country Analysis", "Data Center Calculator"])
+    
+    # TAB 1: Global Overview
     with tab1:
-        # Top-level Metrics
+        st.markdown("## Global Carbon Intensity Map")
+        st.markdown("Explore carbon intensity patterns across countries and identify leaders in clean energy.")
+        
         col1, col2, col3, col4 = st.columns(4)
+        
         with col1:
-            st.metric("Global Average", f"{country_data['carbon_intensity_gco2_kwh'].mean():.0f} gCO₂/kWh")
+            avg_intensity = country_data['carbon_intensity_gco2_kwh'].mean()
+            st.metric("Global Average", f"{avg_intensity:.0f} gCO2/kWh")
+        
         with col2:
             cleanest = country_data.nsmallest(1, 'carbon_intensity_gco2_kwh').iloc[0]
-            st.metric("Lowest Intensity", f"{cleanest['country']}")
+            st.metric("Cleanest Grid", f"{cleanest['country']}: {cleanest['carbon_intensity_gco2_kwh']:.0f}")
+        
         with col3:
             dirtiest = country_data.nlargest(1, 'carbon_intensity_gco2_kwh').iloc[0]
-            st.metric("Highest Intensity", f"{dirtiest['country']}")
+            st.metric("Dirtiest Grid", f"{dirtiest['country']}: {dirtiest['carbon_intensity_gco2_kwh']:.0f}")
+        
         with col4:
-            st.metric("Avg Renewable Share", f"{country_data['renewable_percentage'].mean():.1f}%")
+            avg_renewable = country_data['renewable_percentage'].mean()
+            st.metric("Avg Renewable %", f"{avg_renewable:.1f}%")
         
-        st.markdown("---")
+        # World map
+        st.subheader("Carbon Intensity by Country")
         
-        # --- UPDATED MAP SECTION ---
-        st.markdown("### Carbon Intensity by Region")
-        
-        # Colorscale: Sage (Low Carbon) -> Slate (High Carbon)
-        custom_scale = [
-            [0.0, '#84A98C'],  # Light Sage (Clean)
-            [0.2, '#6B9080'],
-            [0.5, '#A4C3B2'],  # Mid
-            [0.7, '#6C757D'],  # Greyish
-            [1.0, '#2F3E46']   # Dark Slate (Dirty)
-        ]
-
         fig = px.choropleth(
             country_data,
             locations='country',
@@ -306,229 +304,456 @@ if data_loaded:
             hover_data={
                 'carbon_intensity_gco2_kwh': ':.0f',
                 'renewable_percentage': ':.1f',
+                'dominant_fuel': True,
                 'country': False
             },
-            color_continuous_scale=px.colors.sequential.Tealgrn,
-            labels={'carbon_intensity_gco2_kwh': 'gCO₂/kWh'}
+            color_continuous_scale='RdYlGn_r',
+            labels={'carbon_intensity_gco2_kwh': 'Carbon Intensity (gCO2/kWh)'},
+            title='Global Grid Carbon Intensity'
         )
         
-        fig.update_traces(
-            marker_line_color='white',
-            marker_line_width=0.5
-        )
-        
-        # --- MAP VISUAL UPGRADE ---
-        # Added showland, showcountries, and specific colors for the "Base Map" feel
         fig.update_layout(
-            height=600, # Taller for visibility
-            geo=dict(
-                showframe=False,
-                showcoastlines=True,
-                coastlinecolor="#FFFFFF",
-                showland=True,
-                landcolor="#F0F4F2", # Soft light grey land (Base layer)
-                showcountries=True,
-                countrycolor="#FFFFFF", # White borders
-                projection_type='natural earth', # Better looking projection
-                bgcolor='rgba(0,0,0,0)',
-                lakecolor='rgba(0,0,0,0)'
-            ),
-            coloraxis_colorbar=dict(
-                title="Intensity (gCO₂)",
-                thickness=15,
-                len=0.6,
-                yanchor="middle", y=0.5,
-                tickfont=dict(color="#5F6F65", size=14)
-            ),
-            margin=dict(l=0, r=0, t=0, b=0),
-            paper_bgcolor='rgba(0,0,0,0)'
+            height=500,
+            margin=dict(l=0, r=0, t=30, b=0)
         )
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # Top/Bottom Tables
+        # Top/Bottom countries
         col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**Cleanest Grids**")
-            cleanest_10 = country_data.nsmallest(5, 'carbon_intensity_gco2_kwh')[
-                ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage']
-            ]
-            st.dataframe(
-                cleanest_10, 
-                hide_index=True, 
-                use_container_width=True,
-                column_config={
-                    "country": "Country",
-                    "carbon_intensity_gco2_kwh": st.column_config.NumberColumn("Intensity (gCO₂)", format="%d"),
-                    "renewable_percentage": st.column_config.ProgressColumn("Renewable %", format="%.1f%%", min_value=0, max_value=100)
-                }
-            )
-            
-        with col2:
-            st.markdown("**Highest Intensity Grids**")
-            dirtiest_10 = country_data.nlargest(5, 'carbon_intensity_gco2_kwh')[
-                ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage']
-            ]
-            st.dataframe(
-                dirtiest_10, 
-                hide_index=True, 
-                use_container_width=True,
-                column_config={
-                    "country": "Country",
-                    "carbon_intensity_gco2_kwh": st.column_config.NumberColumn("Intensity (gCO₂)", format="%d"),
-                    "renewable_percentage": st.column_config.ProgressColumn("Renewable %", format="%.1f%%", min_value=0, max_value=100)
-                }
-            )
-
-    # === TAB 2: POLICY SIMULATOR ===
-    with tab2:
-        st.markdown("### Energy Mix Transition Simulator")
-        st.markdown("Model the carbon reduction impact of replacing coal capacity with solar.")
         
+        with col1:
+            st.subheader("Cleanest Grids")
+            cleanest_10 = country_data.nsmallest(10, 'carbon_intensity_gco2_kwh')[
+                ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage', 'dominant_fuel']
+            ]
+            cleanest_10.columns = ['Country', 'gCO2/kWh', 'Renewable %', 'Dominant Fuel']
+            st.dataframe(cleanest_10, hide_index=True, use_container_width=True)
+        
+        with col2:
+            st.subheader("Highest Emitters")
+            dirtiest_10 = country_data.nlargest(10, 'carbon_intensity_gco2_kwh')[
+                ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage', 'dominant_fuel']
+            ]
+            dirtiest_10.columns = ['Country', 'gCO2/kWh', 'Renewable %', 'Dominant Fuel']
+            st.dataframe(dirtiest_10, hide_index=True, use_container_width=True)
+    
+    # TAB 2: Policy Simulator
+    with tab2:
+        st.markdown("## Policy Impact Simulator")
+        st.markdown("Model the effects of transitioning from fossil fuels to renewable energy sources.")
+        
+        # Country selection
         countries_with_coal = ml_features[ml_features.get('Coal_pct', 0) > 5].index.tolist()
         
-        if countries_with_coal:
-            col_sel, col_blank = st.columns([1, 2])
-            with col_sel:
-                selected_country = st.selectbox("Select Country", countries_with_coal, index=0)
+        if len(countries_with_coal) > 0:
+            selected_country = st.sidebar.selectbox(
+                "Select Country",
+                countries_with_coal,
+                index=0 if 'USA' not in countries_with_coal else countries_with_coal.index('USA')
+            )
             
+            # Get baseline
             baseline_features = ml_features.loc[[selected_country]].copy()
             baseline_intensity = model.predict(baseline_features)[0]
-            coal_pct = baseline_features.get('Coal_pct', pd.Series([0])).values[0]
-
-            st.markdown("---")
             
-            # Layout: Controls on Left, Results on Right
-            c1, c2 = st.columns([1, 1])
+            # Display current state
+            st.subheader(f"Current State: {selected_country}")
             
-            with c1:
-                st.markdown('<div class="content-card">', unsafe_allow_html=True)
-                st.markdown("#### Adjust Mix")
-                coal_reduction = st.slider(
-                    "Coal → Solar Conversion (%)",
-                    0, min(100, int(coal_pct)), 0, 5
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Current Carbon Intensity", f"{baseline_intensity:.0f} gCO2/kWh")
+            
+            with col2:
+                coal_pct = baseline_features.get('Coal_pct', pd.Series([0])).values[0]
+                st.metric("Coal Percentage", f"{coal_pct:.1f}%")
+            
+            with col3:
+                renewable_ratio = baseline_features.get('renewable_ratio', pd.Series([0])).values[0]
+                st.metric("Renewable Ratio", f"{renewable_ratio*100:.1f}%")
+            
+            # Scenario sliders
+            st.subheader("🎚️ Adjust Energy Mix")
+            
+            coal_reduction = st.slider(
+                "Replace Coal with Solar (%)",
+                min_value=0,
+                max_value=min(100, int(coal_pct)),
+                value=0,
+                step=5,
+                help="Percentage of coal capacity to replace with solar"
+            )
+            
+            # Calculate scenario
+            scenario_features = baseline_features.copy()
+            
+            if coal_reduction > 0 and 'Coal_pct' in scenario_features.columns and 'Solar_pct' in scenario_features.columns:
+                scenario_features['Coal_pct'] -= coal_reduction
+                scenario_features['Solar_pct'] += coal_reduction
+                
+                # Update renewable ratio
+                renewables = ['Solar', 'Wind', 'Hydro', 'Geothermal']
+                renewable_cols = [f'{r}_pct' for r in renewables if f'{r}_pct' in scenario_features.columns]
+                new_renewable_pct = scenario_features[renewable_cols].sum(axis=1).values[0]
+                scenario_features['renewable_ratio'] = new_renewable_pct / 100
+                
+                # Update fossil ratio
+                fossils = ['Coal', 'Oil', 'Gas']
+                fossil_cols = [f'{f}_pct' for f in fossils if f'{f}_pct' in scenario_features.columns]
+                new_fossil_pct = scenario_features[fossil_cols].sum(axis=1).values[0]
+                scenario_features['fossil_ratio'] = new_fossil_pct / 100
+            
+            scenario_intensity = model.predict(scenario_features)[0]
+            reduction = baseline_intensity - scenario_intensity
+            reduction_pct = (reduction / baseline_intensity) * 100
+            
+            # Results
+            st.subheader("📊 Scenario Results")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric(
+                    "New Carbon Intensity",
+                    f"{scenario_intensity:.0f} gCO2/kWh",
+                    delta=f"-{reduction:.0f} gCO2/kWh",
+                    delta_color="inverse"
                 )
-                
-                # Calculation Logic
-                scenario_features = baseline_features.copy()
-                if coal_reduction > 0:
-                    scenario_features['Coal_pct'] -= coal_reduction
-                    scenario_features['Solar_pct'] += coal_reduction
-                    # Recalc ratios
-                    renewables = ['Solar', 'Wind', 'Hydro', 'Geothermal']
-                    ren_cols = [f'{r}_pct' for r in renewables if f'{r}_pct' in scenario_features.columns]
-                    scenario_features['renewable_ratio'] = scenario_features[ren_cols].sum(axis=1).values[0] / 100
-                
-                new_intensity = model.predict(scenario_features)[0]
-                reduction_pct = ((baseline_intensity - new_intensity) / baseline_intensity) * 100
-
-                st.markdown("#### Impact Summary")
-                st.write(f"Before: **{baseline_intensity:.0f}** gCO₂/kWh")
-                st.write(f"After: **{new_intensity:.0f}** gCO₂/kWh")
-                st.markdown(f"**Reduction: {reduction_pct:.1f}%**")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            with c2:
-                # Comparison Chart
-                chart_data = pd.DataFrame({
-                    'Scenario': ['Current Mix', 'Projected Mix'],
-                    'Intensity': [baseline_intensity, new_intensity],
-                    'Color': ['#5F6F65', '#52796F'] # Grey vs Sage
+            
+            with col2:
+                st.metric(
+                    "Reduction",
+                    f"{reduction_pct:.1f}%",
+                    help="Percentage reduction in carbon intensity"
+                )
+            
+            with col3:
+                # Estimate CO2 saved (assuming 100 TWh annual generation)
+                annual_generation_twh = 100
+                co2_saved = reduction * annual_generation_twh * 1_000_000_000 / 1_000_000_000
+                st.metric(
+                    "CO₂ Saved (Mt/year)",
+                    f"{co2_saved:.1f}",
+                    help="Assumes 100 TWh annual generation"
+                )
+            
+            # Visualization
+            comparison_df = pd.DataFrame({
+                'Scenario': ['Current', 'With Transition'],
+                'Carbon Intensity (gCO2/kWh)': [baseline_intensity, scenario_intensity]
+            })
+            
+            fig = px.bar(
+                comparison_df,
+                x='Scenario',
+                y='Carbon Intensity (gCO2/kWh)',
+                color='Scenario',
+                color_discrete_map={'Current': '#ff7f0e', 'With Transition': '#2ca02c'},
+                title='Carbon Intensity Comparison'
+            )
+            
+            fig.update_layout(showlegend=False, height=400)
+            st.plotly_chart(fig, use_container_width=True)
+            
+        else:
+            st.warning("No countries with significant coal capacity found in the dataset.")
+    
+    # TAB 3: Country Deep Dive
+    with tab3:
+        st.header("📊 Country Deep Dive")
+        
+        # Country selector
+        all_countries = sorted(country_data['country'].tolist())
+        selected_country_dive = st.sidebar.selectbox(
+            "Select Country for Analysis",
+            all_countries,
+            index=all_countries.index('USA') if 'USA' in all_countries else 0
+        )
+        
+        country_info = country_data[country_data['country'] == selected_country_dive].iloc[0]
+        
+        # Metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Carbon Intensity", f"{country_info['carbon_intensity_gco2_kwh']:.0f} gCO2/kWh")
+        
+        with col2:
+            st.metric("Total Capacity", f"{country_info['total_capacity_mw']:,.0f} MW")
+        
+        with col3:
+            st.metric("Renewable %", f"{country_info['renewable_percentage']:.1f}%")
+        
+        with col4:
+            st.metric("Dominant Fuel", country_info['dominant_fuel'])
+        
+        # Fuel mix breakdown
+        if selected_country_dive in ml_features.index:
+            st.subheader("Energy Mix Breakdown")
+            
+            fuel_cols = [col for col in ml_features.columns if col.endswith('_pct')]
+            fuel_data = ml_features.loc[selected_country_dive, fuel_cols]
+            fuel_data = fuel_data[fuel_data > 0].sort_values(ascending=False)
+            
+            if len(fuel_data) > 0:
+                fuel_df = pd.DataFrame({
+                    'Fuel Type': [col.replace('_pct', '') for col in fuel_data.index],
+                    'Percentage': fuel_data.values
                 })
                 
-                fig = go.Figure()
-                fig.add_trace(go.Bar(
-                    x=chart_data['Scenario'],
-                    y=chart_data['Intensity'],
-                    marker_color=chart_data['Color'],
-                    width=0.4
-                ))
+                fig = px.pie(
+                    fuel_df,
+                    values='Percentage',
+                    names='Fuel Type',
+                    title=f'{selected_country_dive} Energy Mix',
+                    hole=0.4
+                )
                 
-                fig = apply_chart_theme(fig)
-                fig.update_layout(title="Carbon Intensity Forecast", height=400)
                 st.plotly_chart(fig, use_container_width=True)
-
-    # === TAB 3: COUNTRY ANALYSIS ===
-    with tab3:
-        all_countries = sorted(country_data['country'].tolist())
-        sel_country = st.selectbox("Search Country", all_countries, index=all_countries.index('USA') if 'USA' in all_countries else 0)
+            else:
+                st.info("No fuel mix data available for this country")
         
-        c_info = country_data[country_data['country'] == sel_country].iloc[0]
+        # Comparison with global average
+        st.subheader("Comparison with Global Average")
         
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Grid Intensity", f"{c_info['carbon_intensity_gco2_kwh']:.0f}")
-        with col2:
-            st.metric("Renewable Share", f"{c_info['renewable_percentage']:.1f}%")
-        with col3:
-            st.metric("Dominant Source", c_info['dominant_fuel'])
-            
-        # Fuel Mix Donut
-        if sel_country in ml_features.index:
-            st.markdown("### Generation Mix")
-            fuel_cols = [c for c in ml_features.columns if c.endswith('_pct')]
-            f_data = ml_features.loc[sel_country, fuel_cols]
-            f_data = f_data[f_data > 0].sort_values(ascending=False)
-            
-            # Subtle Palette for Donut
-            sage_palette = ['#2F3E46', '#354F52', '#52796F', '#84A98C', '#CAD2C5', '#E0E7E4']
-            
-            fig = px.pie(
-                values=f_data.values,
-                names=[c.replace('_pct', '') for c in f_data.index],
-                hole=0.6,
-                color_discrete_sequence=sage_palette
-            )
-            fig.update_traces(textposition='outside', textinfo='percent+label')
-            fig = apply_chart_theme(fig)
-            st.plotly_chart(fig, use_container_width=True)
-
-    # === TAB 4: DATA CENTER CALCULATOR ===
+        comparison_data = pd.DataFrame({
+            'Metric': ['Carbon Intensity', 'Renewable %'],
+            selected_country_dive: [
+                country_info['carbon_intensity_gco2_kwh'],
+                country_info['renewable_percentage']
+            ],
+            'Global Average': [
+                country_data['carbon_intensity_gco2_kwh'].mean(),
+                country_data['renewable_percentage'].mean()
+            ]
+        })
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            name=selected_country_dive,
+            x=comparison_data['Metric'],
+            y=comparison_data[selected_country_dive],
+            marker_color='#1f77b4'
+        ))
+        
+        fig.add_trace(go.Bar(
+            name='Global Average',
+            x=comparison_data['Metric'],
+            y=comparison_data['Global Average'],
+            marker_color='#ff7f0e'
+        ))
+        
+        fig.update_layout(
+            barmode='group',
+            title='Country vs Global Average',
+            height=400
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # TAB 4: Data Center Carbon Calculator
     with tab4:
-        st.markdown("### Data Center Carbon Cost")
-        st.markdown("Estimate carbon tax liability based on grid location.")
+        st.header("🖥️ Data Center Carbon Cost Calculator")
+        st.markdown("""
+        Calculate the carbon footprint and potential carbon tax costs for data centers based on location.
+        Understand how grid carbon intensity affects operational sustainability.
+        """)
         
-        # Input Section
-        with st.container():
-            st.markdown('<div class="content-card">', unsafe_allow_html=True)
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                dc_mw = st.number_input("Capacity (MW)", 1, 500, 50)
-            with c2:
-                dc_loc = st.selectbox("Location", sorted(country_data['country'].tolist()))
-            with c3:
-                tax = st.number_input("Carbon Tax ($/t)", 0, 200, 50)
-            st.markdown('</div>', unsafe_allow_html=True)
+        # User inputs
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("⚙️ Data Center Specifications")
             
-        # Calc
-        loc_data = country_data[country_data['country'] == dc_loc].iloc[0]
-        intensity = loc_data['carbon_intensity_gco2_kwh']
-        emissions = (dc_mw * 0.7 * 1.5 * 8760 * intensity) / 1000 # tonnes roughly
-        cost = emissions * tax
+            dc_power_mw = st.number_input(
+                "Power Capacity (MW)",
+                min_value=1,
+                max_value=500,
+                value=50,
+                help="Total power capacity of the data center"
+            )
+            
+            utilization = st.slider(
+                "Average Utilization (%)",
+                min_value=10,
+                max_value=100,
+                value=70,
+                help="Percentage of capacity typically used"
+            )
+            
+            pue = st.slider(
+                "Power Usage Effectiveness (PUE)",
+                min_value=1.0,
+                max_value=3.0,
+                value=1.5,
+                step=0.1,
+                help="1.0 = perfect efficiency, industry average ~1.5-2.0"
+            )
         
-        st.markdown("#### Annual Projection")
-        m1, m2, m3 = st.columns(3)
-        with m1: st.metric("Emissions", f"{emissions:,.0f} tonnes")
-        with m2: st.metric("Est. Tax Cost", f"${cost:,.0f}")
-        with m3: st.metric("Grid Intensity", f"{intensity:.0f} gCO₂/kWh")
+        with col2:
+            st.subheader("📍 Location")
+            
+            dc_country = st.selectbox(
+                "Data Center Location",
+                options=sorted(country_data['country'].tolist()),
+                index=sorted(country_data['country'].tolist()).index('USA') if 'USA' in country_data['country'].tolist() else 0
+            )
+            
+            carbon_tax = st.number_input(
+                "Carbon Tax ($/tonne CO₂)",
+                min_value=0,
+                max_value=200,
+                value=50,
+                help="Current or proposed carbon tax rate"
+            )
+            
+            st.info(f"💡 EU ETS carbon price: ~€80-100/tonne\n\nSingapore: S$25/tonne (rising to S$80)")
         
-        if intensity > 400:
-            st.warning(f"⚠️ **High Carbon Risk:** {dc_loc} has a carbon-intensive grid. Consider onsite renewables.")
-        elif intensity < 100:
-            st.success(f"✅ **Low Carbon:** {dc_loc} is an optimal location for sustainable operations.")
+        # Get country carbon intensity
+        country_info = country_data[country_data['country'] == dc_country].iloc[0]
+        carbon_intensity = country_info['carbon_intensity_gco2_kwh']
+        
+        # Calculate metrics
+        effective_power_mw = dc_power_mw * (utilization / 100) * pue
+        annual_energy_gwh = effective_power_mw * 8760 / 1000
+        annual_emissions_tonnes = (annual_energy_gwh * 1_000_000 * carbon_intensity) / 1_000_000_000
+        annual_carbon_cost = annual_emissions_tonnes * carbon_tax
+        
+        # Results
+        st.subheader("📊 Annual Carbon Footprint")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                "Energy Consumption",
+                f"{annual_energy_gwh:,.0f} GWh/year"
+            )
+        
+        with col2:
+            st.metric(
+                "CO₂ Emissions",
+                f"{annual_emissions_tonnes:,.0f} tonnes/year"
+            )
+        
+        with col3:
+            st.metric(
+                "Grid Intensity",
+                f"{carbon_intensity:.0f} gCO2/kWh",
+                help=f"{dc_country} grid carbon intensity"
+            )
+        
+        with col4:
+            st.metric(
+                "Carbon Tax Cost",
+                f"${annual_carbon_cost:,.0f}/year",
+                delta=f"${annual_carbon_cost/12:,.0f}/month",
+                help="Annual carbon tax liability"
+            )
+        
+        # Comparison with other locations
+        st.subheader("🌍 Location Comparison")
+        
+        comparison_countries = ['USA', 'CHN', 'IND', 'DEU', 'FRA', 'GBR', 'SGP', 'NOR', 'ISL']
+        comparison_data = []
+        
+        for country in comparison_countries:
+            if country in country_data['country'].values:
+                c_info = country_data[country_data['country'] == country].iloc[0]
+                c_emissions = (annual_energy_gwh * 1_000_000 * c_info['carbon_intensity_gco2_kwh']) / 1_000_000_000
+                c_cost = c_emissions * carbon_tax
+                
+                comparison_data.append({
+                    'Country': country,
+                    'Carbon Intensity': c_info['carbon_intensity_gco2_kwh'],
+                    'Annual Emissions (tonnes)': c_emissions,
+                    'Annual Carbon Cost ($)': c_cost,
+                    'Renewable %': c_info['renewable_percentage']
+                })
+        
+        comp_df = pd.DataFrame(comparison_data).sort_values('Annual Emissions (tonnes)')
+        
+        # Visualization
+        fig = px.bar(
+            comp_df,
+            x='Country',
+            y='Annual Emissions (tonnes)',
+            color='Renewable %',
+            color_continuous_scale='RdYlGn',
+            title=f'Annual Emissions for {dc_power_mw}MW Data Center by Location',
+            hover_data=['Carbon Intensity', 'Annual Carbon Cost ($)']
+        )
+        
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Savings potential
+        st.subheader("💰 Potential Savings")
+        
+        cleanest_location = comp_df.iloc[0]
+        current_location = comp_df[comp_df['Country'] == dc_country].iloc[0]
+        
+        emission_savings = current_location['Annual Emissions (tonnes)'] - cleanest_location['Annual Emissions (tonnes)']
+        cost_savings = current_location['Annual Carbon Cost ($)'] - cleanest_location['Annual Carbon Cost ($)']
+        
+        if emission_savings > 0:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.success(f"🌱 **Moving to {cleanest_location['Country']} could save:**")
+                st.write(f"• **{emission_savings:,.0f} tonnes CO₂/year**")
+                st.write(f"• **${cost_savings:,.0f}/year** in carbon costs")
+                st.write(f"• **{(emission_savings/current_location['Annual Emissions (tonnes)'])*100:.1f}%** emission reduction")
+            
+            with col2:
+                ten_year_savings = cost_savings * 10
+                st.info(f"📈 **10-Year Projection:**")
+                st.write(f"• Total carbon cost savings: **${ten_year_savings:,.0f}**")
+                st.write(f"• Total emissions avoided: **{emission_savings*10:,.0f} tonnes**")
+                st.write(f"• Equivalent to taking **{(emission_savings*10/4.6):,.0f} cars** off the road")
         else:
-            st.info(f"ℹ️ **Moderate:** {dc_loc} has average intensity. Efficiency improvements recommended.")
-
-    # --- FOOTER ---
+            st.success(f"✅ {dc_country} is already among the cleanest locations for data centers!")
+        
+        # Renewable energy recommendations
+        st.subheader("🔋 Carbon Reduction Strategies")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**On-site Solutions:**")
+            st.write("• Install solar panels (reduce grid dependency)")
+            st.write("• Battery storage for load shifting")
+            st.write("• Power Purchase Agreements (PPAs) for renewables")
+            st.write("• Improve PUE through cooling optimization")
+        
+        with col2:
+            st.markdown("**Location Strategies:**")
+            st.write("• Prioritize regions with clean grids")
+            st.write("• Consider carbon intensity in site selection")
+            st.write("• Multi-region deployment for workload shifting")
+            st.write("• Partner with utilities on renewable projects")
+        
+        # Data table
+        with st.expander("📋 View Detailed Comparison Table"):
+            st.dataframe(
+                comp_df.style.format({
+                    'Carbon Intensity': '{:.0f}',
+                    'Annual Emissions (tonnes)': '{:,.0f}',
+                    'Annual Carbon Cost ($)': '${:,.0f}',
+                    'Renewable %': '{:.1f}%'
+                }),
+                use_container_width=True,
+                hide_index=True
+            )
+    
+    # Footer
     st.markdown("---")
-    st.markdown(
-        """
-        <div style="text-align: center; color: #5F6F65; font-size: 1rem;">
-            Grid Carbon Emulator • Built with Streamlit • Data Source: WRI
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    **Grid Carbon-Intensity Emulator** | Built with Python, XGBoost, and Streamlit  
+    Data source: [Global Power Plant Database](https://github.com/wri/global-power-plant-database) by World Resources Institute
+    """)
 
 else:
-    st.warning("Data pipeline not run.")
+    st.warning("Please run Phase 2 and Phase 3 to generate the required data files.")
