@@ -95,20 +95,134 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS for professional design
 st.markdown("""
     <style>
+    /* Main layout */
     .main {
-        padding: 0rem 1rem;
+        padding: 2rem 3rem;
+        background-color: #ffffff;
     }
+    
+    /* Headers */
     h1 {
-        color: #1f77b4;
-        padding-bottom: 1rem;
+        color: #1e3a8a;
+        font-weight: 700;
+        padding-bottom: 0.5rem;
+        border-bottom: 3px solid #3b82f6;
+        margin-bottom: 2rem;
     }
+    
+    h2 {
+        color: #1e40af;
+        font-weight: 600;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    h3 {
+        color: #374151;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e3a8a;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        font-size: 0.9rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    
+    /* Cards */
     .stMetric {
-        background-color: #f0f2f6;
-        padding: 1rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 0.75rem 1.5rem;
+        color: #6b7280;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        color: #3b82f6;
+        border-bottom: 3px solid #3b82f6;
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        font-weight: 600;
         border-radius: 0.5rem;
+        padding: 0.75rem 2rem;
+        border: none;
+        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        transition: all 0.3s;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+    }
+    
+    /* Info boxes */
+    .stAlert {
+        border-radius: 0.5rem;
+        border-left: 4px solid #3b82f6;
+        background-color: #eff6ff;
+        padding: 1rem;
+    }
+    
+    /* Sliders */
+    .stSlider {
+        padding: 1rem 0;
+    }
+    
+    /* Dataframes */
+    .dataframe {
+        border-radius: 0.5rem;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 2rem 1rem;
+    }
+    
+    /* Footer */
+    footer {
+        color: #6b7280;
+        font-size: 0.875rem;
+        text-align: center;
+        padding: 2rem 0;
+        border-top: 1px solid #e5e7eb;
+        margin-top: 3rem;
+    }
+    
+    /* Remove excessive spacing */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -140,21 +254,25 @@ except Exception as e:
 
 if data_loaded:
     # Title and description
-    st.title("⚡ Grid Carbon-Intensity Emulator")
+    st.title("Grid Carbon-Intensity Emulator")
     st.markdown("""
-    An AI-powered tool to predict and simulate grid carbon intensity based on energy mix.
-    Explore how different countries' electricity generation affects their carbon footprint.
-    """)
+    <p style='font-size: 1.1rem; color: #6b7280; margin-bottom: 2rem;'>
+    AI-powered analysis and simulation of electricity grid carbon intensity across 167 countries. 
+    Predict the impact of energy policy changes and optimize data center location strategies.
+    </p>
+    """, unsafe_allow_html=True)
     
     # Sidebar
-    st.sidebar.header("🎛️ Controls")
+    st.sidebar.markdown("### Navigation")
+    st.sidebar.markdown("Use the tabs above to explore different features of the emulator.")
     
     # Tab selection
-    tab1, tab2, tab3, tab4 = st.tabs(["🌍 Global Overview", "🔮 Policy Simulator", "📊 Country Deep Dive", "🖥️ Data Center Calculator"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Global Overview", "Policy Simulator", "Country Analysis", "Data Center Calculator"])
     
     # TAB 1: Global Overview
     with tab1:
-        st.header("Global Carbon Intensity Map")
+        st.markdown("## Global Carbon Intensity Map")
+        st.markdown("Explore carbon intensity patterns across countries and identify leaders in clean energy.")
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -205,7 +323,7 @@ if data_loaded:
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🏆 Top 10 Cleanest Grids")
+            st.subheader("Cleanest Grids")
             cleanest_10 = country_data.nsmallest(10, 'carbon_intensity_gco2_kwh')[
                 ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage', 'dominant_fuel']
             ]
@@ -213,7 +331,7 @@ if data_loaded:
             st.dataframe(cleanest_10, hide_index=True, use_container_width=True)
         
         with col2:
-            st.subheader("🚨 Top 10 Dirtiest Grids")
+            st.subheader("Highest Emitters")
             dirtiest_10 = country_data.nlargest(10, 'carbon_intensity_gco2_kwh')[
                 ['country', 'carbon_intensity_gco2_kwh', 'renewable_percentage', 'dominant_fuel']
             ]
@@ -222,8 +340,8 @@ if data_loaded:
     
     # TAB 2: Policy Simulator
     with tab2:
-        st.header("🔮 Policy Impact Simulator")
-        st.markdown("Simulate 'What If?' scenarios for energy transitions")
+        st.markdown("## Policy Impact Simulator")
+        st.markdown("Model the effects of transitioning from fossil fuels to renewable energy sources.")
         
         # Country selection
         countries_with_coal = ml_features[ml_features.get('Coal_pct', 0) > 5].index.tolist()
