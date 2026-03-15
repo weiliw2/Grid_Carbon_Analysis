@@ -76,11 +76,16 @@ def build_location_comparison(
     country_data: pd.DataFrame,
     annual_energy_gwh: float,
     carbon_tax: int,
+    selected_country: str | None = None,
 ) -> pd.DataFrame:
     """Build a comparison table for a fixed annual electricity demand across countries."""
     comparison_data = []
+    countries_to_compare = list(COMPARISON_COUNTRIES)
 
-    for country in COMPARISON_COUNTRIES:
+    if selected_country and selected_country not in countries_to_compare:
+        countries_to_compare.append(selected_country)
+
+    for country in countries_to_compare:
         if country not in country_data["country"].values:
             continue
 

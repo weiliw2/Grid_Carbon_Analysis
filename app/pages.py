@@ -475,7 +475,12 @@ def render_data_center_calculator(country_data: pd.DataFrame, selected_country: 
         )
 
     st.subheader("Location Comparison")
-    comparison_df = build_location_comparison(country_data, metrics["annual_energy_gwh"], carbon_tax)
+    comparison_df = build_location_comparison(
+        country_data,
+        metrics["annual_energy_gwh"],
+        carbon_tax,
+        selected_country=dc_country,
+    )
     fig = px.bar(
         comparison_df,
         x="Country",
@@ -489,8 +494,16 @@ def render_data_center_calculator(country_data: pd.DataFrame, selected_country: 
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Potential Savings")
+    if comparison_df.empty:
+        st.warning("No comparison countries with valid carbon-intensity data are available for this selection.")
+        return
+
     cleanest_location = comparison_df.iloc[0]
-    current_location = comparison_df[comparison_df["Country"] == dc_country].iloc[0]
+    current_rows = comparison_df[comparison_df["Country"] == dc_country]
+    if current_rows.empty:
+        st.warning(f"{dc_country} is not available in the current location comparison set.")
+        return
+    current_location = current_rows.iloc[0]
     emission_savings = current_location["Annual Emissions (tonnes)"] - cleanest_location["Annual Emissions (tonnes)"]
     cost_savings = current_location["Annual Carbon Cost ($)"] - cleanest_location["Annual Carbon Cost ($)"]
 
